@@ -59,10 +59,10 @@
   (lambda (e)
     (match e
       [(Var x)
-       (error "TODO: code goes here (uniquify-exp Var)")]
+       (Var (cdr (assoc x env)))]
       [(Int n) (Int n)]
       [(Let x e body)
-       (error "TODO: code goes here (uniquify-exp Let)")]
+       (let ([sym (gensym x)]) (Let sym ((uniquify-exp env) e) ((uniquify-exp (cons (cons x sym) env)) body)))]
       [(Prim op es)
        (Prim op (for/list ([e es]) ((uniquify-exp env) e)))])))
 
@@ -73,7 +73,20 @@
 
 ;; remove-complex-opera* : Lvar -> Lvar^mon
 (define (remove-complex-opera* p)
-  (error "TODO: code goes here (remove-complex-opera*)"))
+  (match p
+    [(Program info e) (Program info (remove-complex-opera*-exp e))]))
+
+(define (remove-complex-opera*-exp e)
+  (match e
+   [(Var x)
+    (Var x)]
+   [(Int n)
+    (Int n)]
+   [(Let x e body)
+    (Let x (remove-complex-opera*-exp e) (remove-complex-opera*-exp body))]
+   [(Prim op `(,x1 ,x2))
+    (define sym (gensym `x)) (Let sym (remove-complex-opera*-exp x1) (Prim op (list (Var sym) (remove-complex-opera*-exp x2))))]))
+
 
 ;; explicate-control : Lvar^mon -> Cvar
 (define (explicate-control p)
@@ -101,8 +114,8 @@
 (define compiler-passes
   `(
      ;; Uncomment the following passes as you finish them.
-     ;; ("uniquify" ,uniquify ,interp-Lvar ,type-check-Lvar)
-     ;; ("remove complex opera*" ,remove-complex-opera* ,interp-Lvar ,type-check-Lvar)
+     ("uniquify" ,uniquify ,interp-Lvar ,type-check-Lvar)
+     ("remove complex opera*" ,remove-complex-opera* ,interp-Lvar ,type-check-Lvar)
      ;; ("explicate control" ,explicate-control ,interp-Cvar ,type-check-Cvar)
      ;; ("instruction selection" ,select-instructions ,interp-pseudo-x86-0)
      ;; ("assign homes" ,assign-homes ,interp-x86-0)
